@@ -46,7 +46,7 @@ FROM ${DEBIAN_IMAGE} AS builder
 ENV DEBIAN_FRONTEND=noninteractive
 # Debian's security Chromium packaging provides a native ARM64 LLVM/Rust
 # toolchain. Google depot_tools' x86-64 prebuilt tools are not required here.
-ENV PATH=/usr/lib/llvm-22/bin:/usr/bin:/bin:/usr/local/bin
+ENV PATH=/usr/lib/llvm-22/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 RUN test "$(dpkg --print-architecture)" = arm64 \
     && apt-get update \
     && apt-get install -y --no-install-recommends eatmydata ca-certificates \
