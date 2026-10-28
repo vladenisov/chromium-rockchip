@@ -1,0 +1,103 @@
+name: Build
+# Chained build stages; later stages are skipped once one finishes.
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  stage-1:
+    uses: ./.github/workflows/build-stage.yml
+    with:
+      stage: 1
+  stage-2:
+    needs: stage-1
+    if: needs.stage-1.outputs.done == 'false'
+    uses: ./.github/workflows/build-stage.yml
+    with:
+      stage: 2
+  stage-3:
+    needs: stage-2
+    if: needs.stage-2.outputs.done == 'false'
+    uses: ./.github/workflows/build-stage.yml
+    with:
+      stage: 3
+  stage-4:
+    needs: stage-3
+    if: needs.stage-3.outputs.done == 'false'
+    uses: ./.github/workflows/build-stage.yml
+    with:
+      stage: 4
+  stage-5:
+    needs: stage-4
+    if: needs.stage-4.outputs.done == 'false'
+    uses: ./.github/workflows/build-stage.yml
+    with:
+      stage: 5
+  stage-6:
+    needs: stage-5
+    if: needs.stage-5.outputs.done == 'false'
+    uses: ./.github/workflows/build-stage.yml
+    with:
+      stage: 6
+  stage-7:
+    needs: stage-6
+    if: needs.stage-6.outputs.done == 'false'
+    uses: ./.github/workflows/build-stage.yml
+    with:
+      stage: 7
+  stage-8:
+    needs: stage-7
+    if: needs.stage-7.outputs.done == 'false'
+    uses: ./.github/workflows/build-stage.yml
+    with:
+      stage: 8
+  stage-9:
+    needs: stage-8
+    if: needs.stage-8.outputs.done == 'false'
+    uses: ./.github/workflows/build-stage.yml
+    with:
+      stage: 9
+  stage-10:
+    needs: stage-9
+    if: needs.stage-9.outputs.done == 'false'
+    uses: ./.github/workflows/build-stage.yml
+    with:
+      stage: 10
+  stage-11:
+    needs: stage-10
+    if: needs.stage-10.outputs.done == 'false'
+    uses: ./.github/workflows/build-stage.yml
+    with:
+      stage: 11
+  stage-12:
+    needs: stage-11
+    if: needs.stage-11.outputs.done == 'false'
+    uses: ./.github/workflows/build-stage.yml
+    with:
+      stage: 12
+  release:
+    needs: [stage-1, stage-2, stage-3, stage-4, stage-5, stage-6, stage-7, stage-8, stage-9, stage-10, stage-11, stage-12]
+    if: always() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') && contains(join(needs.*.outputs.done, ','), 'true')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: browser
+          path: dist
+      - name: Summary
+        run: cat dist/*.sha256 >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" \
+            --title "$GITHUB_REF_NAME" --prerelease \
+            --notes "Native ARM64 build for RK3588. Hardware video decoding is not verified yet; see README."

@@ -1,0 +1,144 @@
+name: Build stage
+# One time-limited part of the native ARM64 build. Hosted jobs end after six hours, so each
+# stage stops Ninja at a deadline and hands the whole build tree to the next stage.
+on:
+  workflow_call:
+    inputs:
+      stage:
+        type: number
+        required: true
+      compile-minutes:
+        type: number
+        default: 285
+    outputs:
+      done:
+        description: "'true' once the browser is built and packaged"
+        value: ${{ jobs.build.outputs.done }}
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 355
+    outputs:
+      done: ${{ steps.build.outputs.done }}
+    env:
+      IMAGE: chromium-rockchip-builder:ci
+    steps:
+      - name: Deadline
+        run: echo "CHROMIUM_BUILD_DEADLINE=$(( $(date +%s) + ${{ inputs.compile-minutes }} * 60 ))" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v4
+      - name: Free disk space
+        run: |
+          df -h / /mnt || true
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup \
+            /opt/hostedtoolcache /usr/share/swift /usr/local/share/powershell || true
+          sudo docker image prune --all --force > /dev/null
+          # Use whichever filesystem has more room for the source and build tree.
+          root_free=$(df --output=avail / | tail -1)
+          mnt_free=$(df --output=avail /mnt 2>/dev/null | tail -1 || echo 0)
+          if [ "${mnt_free:-0}" -gt "$root_free" ]; then
+            sudo mkdir -p /mnt/work && sudo chown "$(id -u):$(id -g)" /mnt/work && work=/mnt/work
+          else
+            mkdir -p "$HOME/work" && work=$HOME/work
+          fi
+          echo "WORK=$work" >> "$GITHUB_ENV"
+          df -h / /mnt || true
+          nproc && free -h
+      - uses: docker/setup-buildx-action@v3
+      - name: Builder image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: ${{ env.IMAGE }}
+          cache-from: type=gha,scope=builder
+          cache-to: type=gha,mode=max,scope=builder
+      - name: Source cache
+        if: inputs.stage == 1
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.WORK }}/downloads
+          key: sources-${{ hashFiles('sources.json') }}
+      - name: Fetch sources
+        if: inputs.stage == 1
+        run: |
+          mkdir -p "$WORK/tmp"
+          docker run --rm --init --user "$(id -u):$(id -g)" --cap-drop=ALL \
+            --security-opt=no-new-privileges:true -v "$PWD:/project:ro" -v "$WORK:/work" \
+            -e TMPDIR=/work/tmp "$IMAGE" python3 /project/fetch-sources.py --work /work
+      - name: Previous build tree
+        if: inputs.stage > 1
+        uses: actions/download-artifact@v4
+        with:
+          name: tree-${{ inputs.stage - 1 }}
+          path: ${{ runner.temp }}/tree
+      - name: Unpack build tree
+        if: inputs.stage > 1
+        run: |
+          zstd -d --stdout "$RUNNER_TEMP/tree/tree.tar.zst" | tar -C "$WORK" -x
+          rm -f "$RUNNER_TEMP/tree/tree.tar.zst"
+          mkdir -p "$WORK/tmp"
+          df -h "$WORK"
+      - name: Build
+        id: build
+        run: |
+          set +e
+          docker run --rm --init --user "$(id -u):$(id -g)" --cap-drop=ALL \
+            --security-opt=no-new-privileges:true -v "$PWD:/project:ro" -v "$WORK:/work" \
+            -e TMPDIR=/work/tmp -e CHROMIUM_JOBS="$(nproc)" \
+            -e CHROMIUM_BUILD_DEADLINE "$IMAGE" python3 /project/build-browser.py
+          status=$?
+          set -e
+          df -h "$WORK"
+          tail -n 40 "$WORK/logs/build-browser.log" || true
+          case $status in
+            0) echo done=true >> "$GITHUB_OUTPUT" ;;
+            75) echo done=false >> "$GITHUB_OUTPUT" ;;
+            *) exit "$status" ;;
+          esac
+      - name: Build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-${{ inputs.stage }}
+          path: |
+            ${{ env.WORK }}/build-status.json
+            ${{ env.WORK }}/logs/
+          retention-days: 7
+          if-no-files-found: ignore
+      - name: Pack build tree
+        if: steps.build.outputs.done == 'false'
+        run: |
+          mkdir -p "$RUNNER_TEMP/tree"
+          tar -C "$WORK" --exclude=./downloads --exclude=./tmp -cf - . \
+            | zstd -T0 -3 -o "$RUNNER_TEMP/tree/tree.tar.zst"
+          ls -lh "$RUNNER_TEMP/tree"
+      - name: Upload build tree
+        if: steps.build.outputs.done == 'false'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tree-${{ inputs.stage }}
+          path: ${{ runner.temp }}/tree/tree.tar.zst
+          compression-level: 0
+          retention-days: 2
+      - name: Package browser
+        if: steps.build.outputs.done == 'true'
+        run: |
+          version=$(python3 -c 'import json; print(json.load(open("sources.json"))["chromium"]["version"])')
+          prefix="$WORK/stage/opt/chromium-rockchip"
+          # Keep chrome_sandbox byte-identical; it becomes the setuid helper on install.
+          find "$prefix" -type f \( -name chrome -o -name chrome_crashpad_handler -o -name '*.so' -o -name '*.so.*' \) \
+            -exec strip --strip-unneeded {} +
+          mkdir -p dist
+          name="chromium-rockchip-$version-arm64"
+          tar -C "$WORK/stage" --owner=0 --group=0 --numeric-owner -cf - opt | xz -T0 -6 > "dist/$name.tar.xz"
+          (cd dist && sha256sum "$name.tar.xz" > "$name.tar.xz.sha256")
+          ls -lh dist
+      - name: Upload browser
+        if: steps.build.outputs.done == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser
+          path: dist/
+          compression-level: 0

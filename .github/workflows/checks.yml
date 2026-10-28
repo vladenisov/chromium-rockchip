@@ -1,0 +1,16 @@
+name: Checks
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  scripts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unit tests and shell syntax
+        run: make test
+      - name: Python syntax
+        run: python3 -m compileall -q fetch-sources.py build-browser.py verify-browser.py

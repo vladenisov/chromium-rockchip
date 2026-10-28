@@ -1,0 +1,9 @@
+/work/
+/.venv/
+/.env
+Dockerfile.builder
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/

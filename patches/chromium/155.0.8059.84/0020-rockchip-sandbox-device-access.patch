@@ -1,0 +1,154 @@
+Subject: [PATCH] Rockchip deployment: retain sandbox with exact MPP device access
+
+Original project integration for Chromium 155.0.8059.84.
+This is a local patch, separate from the imported JeffyCN patch series.
+
+---
+diff --git a/content/common/gpu_pre_sandbox_hook_linux.cc b/content/common/gpu_pre_sandbox_hook_linux.cc
+index 2e53794..09e2db1 100644
+--- a/content/common/gpu_pre_sandbox_hook_linux.cc
++++ b/content/common/gpu_pre_sandbox_hook_linux.cc
+@@ -115,6 +115,50 @@ void AddStandardChromeOsPermissions(
+   }
+ }
+ 
++
++#if BUILDFLAG(USE_V4L2_CODEC) && BUILDFLAG(IS_LINUX)
++// The Rockchip V4L2 plugin forwards codec operations to MPP. Keep this
++// deployment's fixed library prefix and device allowlist out of global paths.
++void AddRockchipMppPermissions(
++    std::vector<BrokerFilePermission>& permissions) {
++  static constexpr const char* kReadWritePaths[] = {
++      "/dev/video-dec0", "/dev/video-enc0",
++      "/dev/mpp_service", "/dev/rga", "/dev/dri/card0",
++      "/dev/dma_heap/system", "/dev/dma_heap/cma",
++  };
++  for (const char* path : kReadWritePaths) {
++    permissions.push_back(BrokerFilePermission::ReadWrite(path));
++  }
++  static constexpr const char* kReadOnlyPaths[] = {
++      "/proc/device-tree/compatible", "/proc/version",
++      "/proc/mpp_service/supports-cmd", "/proc/mpp_service/support_cmd",
++      "/opt/chromium-rockchip/lib/libv4l2.so.0",
++      "/opt/chromium-rockchip/lib/libv4lconvert.so.0",
++      "/opt/chromium-rockchip/lib/librockchip_mpp.so.1",
++      "/opt/chromium-rockchip/lib/librga.so.2",
++      "/opt/chromium-rockchip/lib/libv4l/plugins",
++      "/opt/chromium-rockchip/lib/libv4l/plugins/libv4l-rkmpp.so",
++  };
++  for (const char* path : kReadOnlyPaths) {
++    permissions.push_back(BrokerFilePermission::ReadOnly(path));
++  }
++}
++
++void LoadRockchipMppLibraries() {
++  // Resolve dependency constructors and plugin code before seccomp starts.
++  // Missing acceleration libraries must still permit software decoding.
++  static constexpr const char* kLibraries[] = {
++      "/opt/chromium-rockchip/lib/librockchip_mpp.so.1",
++      "/opt/chromium-rockchip/lib/librga.so.2",
++      "/opt/chromium-rockchip/lib/libv4l2.so.0",
++      "/opt/chromium-rockchip/lib/libv4l/plugins/libv4l-rkmpp.so",
++  };
++  for (const char* library : kLibraries) {
++    dlopen(library, RTLD_NOW | RTLD_GLOBAL | RTLD_NODELETE);
++  }
++}
++#endif
++
+ void AddV4L2GpuPermissions(
+     std::vector<BrokerFilePermission>* permissions,
+     const sandbox::policy::SandboxSeccompBPF::Options& options) {
+@@ -627,6 +671,12 @@ std::vector<BrokerFilePermission> FilePermissionsForGpu(
+       BrokerFilePermission::ReadOnly(kDriRcPath)};
+ 
+   AddVulkanICDPermissions(&permissions);
++#if BUILDFLAG(USE_V4L2_CODEC) && BUILDFLAG(IS_LINUX)
++  if (UseV4L2Codec(options)) {
++    // Desktop Linux does not use the ChromeOS or Chromecast allowlists.
++    AddRockchipMppPermissions(permissions);
++  }
++#endif
+ 
+   if (IsChromeOS()) {
+     // Permissions are additive, there can be multiple GPUs in the system.
+@@ -675,6 +725,11 @@ std::vector<BrokerFilePermission> FilePermissionsForGpu(
+ bool LoadLibrariesForGpu(
+     const sandbox::policy::SandboxSeccompBPF::Options& options) {
+   LoadVulkanLibraries();
++#if BUILDFLAG(USE_V4L2_CODEC) && BUILDFLAG(IS_LINUX)
++  if (UseV4L2Codec(options)) {
++    LoadRockchipMppLibraries();
++  }
++#endif
+   if (IsArchitectureArm()) {
+     LoadArmGpuLibraries();
+   }
+diff --git a/media/gpu/sandbox/hardware_video_decoding_sandbox_hook_linux.cc b/media/gpu/sandbox/hardware_video_decoding_sandbox_hook_linux.cc
+index 37f44c9..ce360d6 100644
+--- a/media/gpu/sandbox/hardware_video_decoding_sandbox_hook_linux.cc
++++ b/media/gpu/sandbox/hardware_video_decoding_sandbox_hook_linux.cc
+@@ -33,6 +33,50 @@ using sandbox::syscall_broker::BrokerFilePermission;
+ namespace media {
+ namespace {
+ 
++
++#if BUILDFLAG(USE_V4L2_CODEC) && BUILDFLAG(IS_LINUX)
++// The Rockchip V4L2 plugin forwards codec operations to MPP. Keep this
++// deployment's fixed library prefix and device allowlist out of global paths.
++void AddRockchipMppPermissions(
++    std::vector<BrokerFilePermission>& permissions) {
++  static constexpr const char* kReadWritePaths[] = {
++      "/dev/video-dec0", "/dev/video-enc0",
++      "/dev/mpp_service", "/dev/rga", "/dev/dri/card0",
++      "/dev/dma_heap/system", "/dev/dma_heap/cma",
++  };
++  for (const char* path : kReadWritePaths) {
++    permissions.push_back(BrokerFilePermission::ReadWrite(path));
++  }
++  static constexpr const char* kReadOnlyPaths[] = {
++      "/proc/device-tree/compatible", "/proc/version",
++      "/proc/mpp_service/supports-cmd", "/proc/mpp_service/support_cmd",
++      "/opt/chromium-rockchip/lib/libv4l2.so.0",
++      "/opt/chromium-rockchip/lib/libv4lconvert.so.0",
++      "/opt/chromium-rockchip/lib/librockchip_mpp.so.1",
++      "/opt/chromium-rockchip/lib/librga.so.2",
++      "/opt/chromium-rockchip/lib/libv4l/plugins",
++      "/opt/chromium-rockchip/lib/libv4l/plugins/libv4l-rkmpp.so",
++  };
++  for (const char* path : kReadOnlyPaths) {
++    permissions.push_back(BrokerFilePermission::ReadOnly(path));
++  }
++}
++
++void LoadRockchipMppLibraries() {
++  // Resolve dependency constructors and plugin code before seccomp starts.
++  // Missing acceleration libraries must still permit software decoding.
++  static constexpr const char* kLibraries[] = {
++      "/opt/chromium-rockchip/lib/librockchip_mpp.so.1",
++      "/opt/chromium-rockchip/lib/librga.so.2",
++      "/opt/chromium-rockchip/lib/libv4l2.so.0",
++      "/opt/chromium-rockchip/lib/libv4l/plugins/libv4l-rkmpp.so",
++  };
++  for (const char* library : kLibraries) {
++    dlopen(library, RTLD_NOW | RTLD_GLOBAL | RTLD_NODELETE);
++  }
++}
++#endif
++
+ void AllowAccessToRenderNodes(std::vector<BrokerFilePermission>& permissions,
+                               bool include_sys_dev_char,
+                               bool read_write) {
+@@ -164,6 +208,12 @@ bool HardwareVideoDecodingPreSandboxHookForV4L2(
+     sandbox::syscall_broker::BrokerCommandSet& command_set,
+     std::vector<BrokerFilePermission>& permissions) {
+ #if BUILDFLAG(USE_V4L2_CODEC)
++#if BUILDFLAG(IS_LINUX)
++  command_set.set(sandbox::syscall_broker::COMMAND_ACCESS);
++  command_set.set(sandbox::syscall_broker::COMMAND_STAT);
++  AddRockchipMppPermissions(permissions);
++  LoadRockchipMppLibraries();
++#endif
+   command_set.set(sandbox::syscall_broker::COMMAND_OPEN);
+ 
+   // TODO(b/210759684): we should open the render node for minigbm before
