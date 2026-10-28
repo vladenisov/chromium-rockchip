@@ -26,7 +26,10 @@ jobs:
       IMAGE: chromium-rockchip-builder:ci
     steps:
       - name: Deadline
-        run: echo "CHROMIUM_BUILD_DEADLINE=$(( $(date +%s) + ${{ inputs.compile-minutes }} * 60 ))" >> "$GITHUB_ENV"
+        id: stage
+        run: |
+          echo "CHROMIUM_BUILD_DEADLINE=$(( $(date +%s) + ${{ inputs.compile-minutes }} * 60 ))" >> "$GITHUB_ENV"
+          echo "previous=$(( ${{ inputs.stage }} - 1 ))" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
       - name: Free disk space
         run: |
@@ -71,7 +74,7 @@ jobs:
         if: inputs.stage > 1
         uses: actions/download-artifact@v4
         with:
-          name: tree-${{ inputs.stage - 1 }}
+          name: tree-${{ steps.stage.outputs.previous }}
           path: ${{ runner.temp }}/tree
       - name: Unpack build tree
         if: inputs.stage > 1
