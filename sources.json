@@ -8,12 +8,12 @@
   "debian": {
     "version": "155.0.8059.79-1~deb12u1",
     "packaging": {
-      "url": "https://security.debian.org/debian-security/pool/updates/main/c/chromium/chromium_155.0.8059.79-1~deb12u1.debian.tar.xz",
+      "url": "https://snapshot.debian.org/archive/debian-security/20261015T183338Z/pool/updates/main/c/chromium/chromium_155.0.8059.79-1~deb12u1.debian.tar.xz",
       "sha256": "33773ce13c4c2f18c2d95bb5a510353705685b0e072dde6952facdec45c77acf",
       "size": 589708
     },
     "pregen": {
-      "url": "https://security.debian.org/debian-security/pool/updates/main/c/chromium/chromium_155.0.8059.79.orig-pre-gen.tar.xz",
+      "url": "https://snapshot.debian.org/archive/debian-security/20261015T173155Z/pool/updates/main/c/chromium/chromium_155.0.8059.79.orig-pre-gen.tar.xz",
       "sha256": "75fc1329e91581b28fb4b24ad3661372d80b548d39badbd99c957d59c9d28650",
       "size": 17201300
     }
