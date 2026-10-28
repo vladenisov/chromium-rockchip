@@ -100,4 +100,4 @@ jobs:
         run: |
           gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" \
             --title "$GITHUB_REF_NAME" --prerelease \
-            --notes "Native ARM64 build for RK3588. Hardware video decoding is not verified yet; see README."
+            --notes "Native ARM64 build for RK3588 with V4L2/MPP video decoding. Built on a hosted runner without Rockchip hardware; see README for what was verified."

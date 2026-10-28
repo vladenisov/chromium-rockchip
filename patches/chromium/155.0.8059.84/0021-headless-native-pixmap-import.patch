@@ -1,0 +1,125 @@
+Subject: [PATCH] Headless Ozone: import dma-buf native pixmaps
+
+Original project integration for Chromium 155.0.8059.84.
+The headless platform reported that NV12 native pixmaps cannot be imported,
+so V4L2/MPP decoded frames went through an image processor that fails on
+RK3588 and playback fell back to FFmpeg. Implement dma-buf import like the
+Wayland and X11 platforms so decoded frames reach the compositor directly.
+
+---
+--- a/ui/ozone/platform/headless/headless_surface_factory.h
++++ b/ui/ozone/platform/headless/headless_surface_factory.h
+@@ -9,6 +9,7 @@
+ #include <vector>
+ 
+ #include "base/files/file_path.h"
++#include "build/build_config.h"
+ #include "ui/ozone/public/gl_ozone.h"
+ #include "ui/ozone/public/surface_factory_ozone.h"
+ 
+@@ -40,6 +41,13 @@
+       viz::SharedImageFormat format,
+       gfx::BufferUsage usage,
+       std::optional<gfx::Size> framebuffer_size) override;
++#if BUILDFLAG(IS_LINUX)
++  scoped_refptr<gfx::NativePixmap> CreateNativePixmapFromHandle(
++      gfx::AcceleratedWidget widget,
++      gfx::Size size,
++      viz::SharedImageFormat format,
++      gfx::NativePixmapHandle handle) override;
++#endif
+ 
+  private:
+   void CheckBasePath() const;
+--- a/ui/ozone/platform/headless/headless_surface_factory.cc
++++ b/ui/ozone/platform/headless/headless_surface_factory.cc
+@@ -27,6 +27,7 @@
+ #include "ui/gfx/geometry/skia_conversions.h"
+ #include "ui/gfx/native_pixmap.h"
+ #include "ui/gfx/vsync_provider.h"
++#include "ui/gl/gl_bindings.h"
+ #include "ui/gl/gl_surface_egl.h"
+ #include "ui/ozone/common/egl_util.h"
+ #include "ui/ozone/common/gl_ozone_egl.h"
+@@ -35,6 +36,11 @@
+ #include "ui/ozone/platform/headless/headless_window_manager.h"
+ #include "ui/ozone/public/surface_ozone_canvas.h"
+ 
++#if BUILDFLAG(IS_LINUX)
++#include "ui/gfx/linux/native_pixmap_dmabuf.h"
++#include "ui/ozone/common/native_pixmap_egl_binding.h"
++#endif
++
+ #if BUILDFLAG(ENABLE_VULKAN) && (BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_FUCHSIA))
+ #include "ui/ozone/platform/headless/vulkan_implementation_headless.h"
+ #endif
+@@ -205,6 +211,31 @@
+             display->GetAs<gl::GLDisplayEGL>(), size));
+   }
+ 
++#if BUILDFLAG(IS_LINUX)
++  // Lets hardware video decoders hand NV12 dma-bufs to the compositor without
++  // a copy, as the Wayland and X11 platforms do.
++  bool CanImportNativePixmap(viz::SharedImageFormat format) override {
++    gl::GLDisplayEGL* display = gl::GLSurfaceEGL::GetGLDisplayEGL();
++    if (!display || !display->ext->b_EGL_EXT_image_dma_buf_import) {
++      return false;
++    }
++    return NativePixmapEGLBinding::IsSharedImageFormatSupported(format);
++  }
++
++  std::unique_ptr<NativePixmapGLBinding> ImportNativePixmap(
++      scoped_refptr<gfx::NativePixmap> pixmap,
++      viz::SharedImageFormat plane_format,
++      std::optional<int> plane_index,
++      gfx::Size plane_size,
++      const gfx::ColorSpace& color_space,
++      GLenum target,
++      GLuint texture_id) override {
++    return NativePixmapEGLBinding::Create(pixmap, plane_format, plane_index,
++                                          plane_size, color_space, target,
++                                          texture_id);
++  }
++#endif  // BUILDFLAG(IS_LINUX)
++
+  protected:
+   // GLOzoneEGL:
+   gl::EGLDisplayPlatform GetNativeDisplay() override {
+@@ -265,6 +296,19 @@
+   return new TestPixmap(format);
+ }
+ 
++#if BUILDFLAG(IS_LINUX)
++scoped_refptr<gfx::NativePixmap>
++HeadlessSurfaceFactory::CreateNativePixmapFromHandle(
++    gfx::AcceleratedWidget widget,
++    gfx::Size size,
++    viz::SharedImageFormat format,
++    gfx::NativePixmapHandle handle) {
++  auto pixmap = base::MakeRefCounted<gfx::NativePixmapDmaBuf>(
++      size, format, std::move(handle));
++  return pixmap->AreDmaBufFdsValid() ? pixmap : nullptr;
++}
++#endif  // BUILDFLAG(IS_LINUX)
++
+ void HeadlessSurfaceFactory::CheckBasePath() const {
+   if (base_path_.empty())
+     return;
+--- a/ui/ozone/platform/headless/ozone_platform_headless.cc
++++ b/ui/ozone/platform/headless/ozone_platform_headless.cc
+@@ -119,6 +119,15 @@
+   }
+ #endif
+ 
++#if BUILDFLAG(IS_LINUX)
++  const PlatformRuntimeProperties& GetPlatformRuntimeProperties() override {
++    static OzonePlatform::PlatformRuntimeProperties properties;
++    // Set in the GPU process, where dma-buf backed shared images are imported.
++    properties.supports_native_pixmaps = has_initialized_gpu();
++    return properties;
++  }
++#endif
++
+   bool InitializeUI(const InitParams& params) override {
+     window_manager_ = std::make_unique<HeadlessWindowManager>();
+     surface_factory_ = std::make_unique<HeadlessSurfaceFactory>(file_path_);

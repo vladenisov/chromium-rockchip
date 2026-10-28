@@ -4,11 +4,12 @@ Build official Chromium with Rockchip MPP video acceleration on native ARM64
 Debian Bookworm. Headless/CDP is the primary use case; desktop use is supported
 by a separate launcher and profile.
 
-**Experimental:** a native component build of Chromium 155 with this patch
-set completes and runs on RK3588. Hardware video decoding is not verified yet:
-Chromium selects the V4L2 decoder and MPP decodes, but in headless mode the
-NV12 frames cannot be imported for rendering and playback falls back to
-FFmpeg. This is not a verified hardware-decoding release.
+**Experimental:** with this patch set Chromium 155 decodes H.264 through
+V4L2/MPP on RK3588 in headless mode: the verifier reports `V4L2VideoDecoder`
+as a platform decoder at full frame rate, and decoded NV12 frames are shown
+without a copy (patch 0021). This was checked with a native component build;
+other codecs, resolutions and desktop (X11/Wayland) sessions are not verified
+yet.
 
 ## Pinned inputs
 

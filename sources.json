@@ -20,7 +20,7 @@
   },
   "rockchip_patches": {
     "directory": "patches/chromium/155.0.8059.84",
-    "count": 8,
+    "count": 9,
     "upstream_ref": "9d84a3b12b76e34ef08bdde87405bb19ec45d434"
   }
 }

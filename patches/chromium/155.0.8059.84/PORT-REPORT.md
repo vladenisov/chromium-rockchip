@@ -10,7 +10,7 @@ libv4l plugin. No proprietary Mali DDK or compositor changes are included.
 
 ## Apply in filename order
 
-The eight `.patch` files were individually checked with `git apply --check`
+The original eight `.patch` files were individually checked with `git apply --check`
 and then applied to a clean tree of their affected official Chromium files.
 The complete resulting diff was compared byte-for-byte with the ported tree.
 This verifies patch application, not compilation or runtime compatibility.
@@ -25,6 +25,13 @@ Port adaptations:
   path with `/opt/chromium-rockchip/lib/libv4l2.so.0` in both consumers.
 - 0020: deployment-specific additive sandbox permissions and preloading in
   both desktop GPU and dedicated hardware video decode pre-sandbox hooks.
+- 0021: original. The headless Ozone platform never offered dma-buf import,
+  so Chromium judged NV12 frames unrenderable and inserted an image processor
+  that fails on RK3588 (GL: NV12 import unsupported; LibYUV: the frame layout
+  does not fit the exported buffer), falling back to FFmpeg. The patch adds
+  the same EGL dma-buf import the Wayland and X11 platforms use. Verified on
+  RK3588 (Mali-G610, Panthor) with H.264 720p: no image processor,
+  `V4L2VideoDecoder` with `platform=true`, 25 fps, correct picture.
 
 The source and validation trees are in sibling `port-work/`, including a
 pristine git commit, per-stage commits, and an independently reapplied tree.

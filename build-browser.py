@@ -173,8 +173,8 @@ class Build:
 
     def patch_rockchip(self):
         patches = sorted((self.work / "patches/155").glob("*.patch"))
-        if len(patches) != 8:
-            raise RuntimeError(f"Expected 8 reviewed Rockchip patches, found {len(patches)}")
+        if len(patches) != 9:
+            raise RuntimeError(f"Expected 9 reviewed Rockchip patches, found {len(patches)}")
         for patch in patches:
             digest = hashlib.sha256(patch.read_bytes()).hexdigest()
             marker = self.markers / (patch.name + ".sha256")
