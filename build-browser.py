@@ -24,7 +24,12 @@ RUST_STD_FLAGS = '        this_file = "$lib_dir/lib$lib.rlib"\n        ldflags +
 RUST_STD_LIBS = '        libs += [ "$root_build_dir/$lib_dir/lib$lib.rlib" ]\n'
 # The prebuilt Rust std rlibs carry DWARF; in the static chrome binary the debug sections
 # outgrow 32-bit DWARF offsets and lld fails with R_AARCH64_ABS32 out of range.
-STRIP_DEBUG = "export LDFLAGS+=-Wl,--strip-debug\n"
+# Added to the target toolchain in GN itself: CI showed that the debian/rules LDFLAGS route
+# did not reach the generated link commands of an already configured tree.
+UNBUNDLE_GN = "build/toolchain/linux/unbundle/BUILD.gn"
+UNBUNDLE_LDFLAGS = '  extra_ldflags = getenv("LDFLAGS")\n\n  toolchain_args = {\n    current_cpu = current_cpu\n    current_os = current_os'
+STRIP_DEBUG = '  extra_ldflags = getenv("LDFLAGS") + " -Wl,--strip-debug"\n'
+STRIP_DEBUG_FLAG = "-Wl,--strip-debug"
 V4L2_GN = "media/gpu/v4l2/BUILD.gn"
 V4L2_DEPS = '  deps = [\n    ":v4l2_status",\n'
 
@@ -202,14 +207,12 @@ class Build:
         if "# ROCKCHIP NATIVE RUNNER" in text:
             if "use_mold=false" not in text:
                 text = text.replace("defines+=is_component_build=true ", no_mold, 1)
-            if STRIP_DEBUG not in text:
-                text = text.replace("# ROCKCHIP NATIVE RUNNER\n", "# ROCKCHIP NATIVE RUNNER\n" + STRIP_DEBUG, 1)
             rules.write_text(text)
             return
         if text.count("is_official_build=true") != 1:
             raise RuntimeError("Expected exactly one is_official_build=true in pinned Debian rules")
         text = text.replace("is_official_build=true", "is_official_build=false")
-        text += ('\n# ROCKCHIP NATIVE RUNNER\n' + STRIP_DEBUG
+        text += ('\n# ROCKCHIP NATIVE RUNNER\n'
                  + no_mold + 'concurrent_links=1 blink_symbol_level=0 v8_symbol_level=0\n'
                  '.PHONY: rkmpp-configure\n'
                  'rkmpp-configure: out/Release/gn\n'
@@ -256,6 +259,22 @@ class Build:
             raise RuntimeError(f"Expected exactly one std rlib ldflags loop in {RUST_STD_GN}")
         text = text.replace(RUST_STD_FLAGS, RUST_STD_LIBS, 1)
         gn.write_text(text.replace('ldflags = [ "-lm" ]', 'ldflags = [ "-lm" ]\n      libs = []', 1))
+
+    def strip_debug_links(self):
+        gn = self.source / UNBUNDLE_GN
+        text = gn.read_text()
+        if STRIP_DEBUG in text:
+            return
+        if text.count(UNBUNDLE_LDFLAGS) != 1:
+            raise RuntimeError(f"Expected exactly one target toolchain LDFLAGS in {UNBUNDLE_GN}")
+        old = UNBUNDLE_LDFLAGS.split("\n", 1)[0] + "\n"
+        gn.write_text(text.replace(UNBUNDLE_LDFLAGS, UNBUNDLE_LDFLAGS.replace(old, STRIP_DEBUG, 1), 1))
+
+    def check_link_flags(self):
+        # Fail within minutes instead of after hours of compiling up to the final link.
+        toolchain = self.source / "out/Release/toolchain.ninja"
+        if STRIP_DEBUG_FLAG not in toolchain.read_text():
+            raise RuntimeError(f"{STRIP_DEBUG_FLAG} missing from {toolchain}")
 
     def depend_on_v4l2_stubs(self):
         # Rockchip patch 0004 declares the libv4l2_stubs generator, but nothing in the v4l2
@@ -318,7 +337,9 @@ class Build:
                  ("pregen", self.prepare_pregen))
                 + (component_fixes if component_build() else ())
                 + (("v4l2-stubs", self.depend_on_v4l2_stubs),
+                   ("strip-debug-links", self.strip_debug_links),
                    ("configure", self.configure),
+                   ("check-link-flags", self.check_link_flags),
                    ("rockchip-libraries", self.libraries),
                    ("compile", self.compile),
                    ("stage-runtime", lambda: stage_runtime(self.source / "out/Release", self.stage, self.source)),

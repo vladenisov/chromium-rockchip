@@ -118,21 +118,28 @@ class BuilderTests(unittest.TestCase):
             with mock.patch.dict(builder.os.environ, {"CHROMIUM_COMPONENT_BUILD": "1"}):
                 self.assertIn("rust-std-last", [name for name, _ in runner.steps()])
 
-    def test_links_strip_debug_info_also_in_prepared_tree(self):
+    def test_target_toolchain_links_strip_debug_info_once(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / "debian").mkdir()
-            rules = root / "debian/rules"
-            rules.write_text("defines+=is_official_build=true\n")
+            gn = root / builder.UNBUNDLE_GN
+            gn.parent.mkdir(parents=True)
+            host = '  extra_ldflags = getenv("LDFLAGS_FOR_BUILD")\n\n  toolchain_args = {\n'
+            gn.write_text('gcc_toolchain("default") {\n' + builder.UNBUNDLE_LDFLAGS
+                          + '\n  }\n}\ngcc_toolchain("host") {\n' + host + '  }\n}\n')
             runner = builder.Build.__new__(builder.Build)
             runner.source = root
-            runner.prepare_rules()
-            runner.prepare_rules()
-            self.assertEqual(rules.read_text().count(builder.STRIP_DEBUG), 1)
-            # A tree prepared before this rule was added gets it on the next run.
-            rules.write_text(rules.read_text().replace(builder.STRIP_DEBUG, ""))
-            runner.prepare_rules()
-            self.assertEqual(rules.read_text().count(builder.STRIP_DEBUG), 1)
+            runner.strip_debug_links()
+            runner.strip_debug_links()
+            text = gn.read_text()
+            self.assertEqual(text.count(builder.STRIP_DEBUG_FLAG), 1)
+            self.assertIn(host, text)
+            out = root / "out/Release"
+            out.mkdir(parents=True)
+            (out / "toolchain.ninja").write_text("command = clang++ -Wl,--stats\n")
+            with self.assertRaisesRegex(RuntimeError, "strip-debug"):
+                runner.check_link_flags()
+            (out / "toolchain.ninja").write_text("command = clang++ -Wl,--strip-debug\n")
+            runner.check_link_flags()
 
     def test_compile_pauses_at_deadline_and_records_it(self):
         with tempfile.TemporaryDirectory() as tmp:
