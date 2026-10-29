@@ -22,6 +22,9 @@ RUST_STD_LDFLAGS = '    config("prebuilt_stdlib_libs") {\n      ldflags = []'
 RUST_STD_FLAGS = '        this_file = "$lib_dir/lib$lib.rlib"\n        ldflags += [ this_file ]\n'
 # lib_dir must stay in use (GN rejects unused variables); it is relative to the build directory.
 RUST_STD_LIBS = '        libs += [ "$root_build_dir/$lib_dir/lib$lib.rlib" ]\n'
+# The prebuilt Rust std rlibs carry DWARF; in the static chrome binary the debug sections
+# outgrow 32-bit DWARF offsets and lld fails with R_AARCH64_ABS32 out of range.
+STRIP_DEBUG = "export LDFLAGS+=-Wl,--strip-debug\n"
 V4L2_GN = "media/gpu/v4l2/BUILD.gn"
 V4L2_DEPS = '  deps = [\n    ":v4l2_status",\n'
 
@@ -198,12 +201,15 @@ class Build:
         no_mold = f"defines+=is_component_build={component} use_mold=false "
         if "# ROCKCHIP NATIVE RUNNER" in text:
             if "use_mold=false" not in text:
-                rules.write_text(text.replace("defines+=is_component_build=true ", no_mold, 1))
+                text = text.replace("defines+=is_component_build=true ", no_mold, 1)
+            if STRIP_DEBUG not in text:
+                text = text.replace("# ROCKCHIP NATIVE RUNNER\n", "# ROCKCHIP NATIVE RUNNER\n" + STRIP_DEBUG, 1)
+            rules.write_text(text)
             return
         if text.count("is_official_build=true") != 1:
             raise RuntimeError("Expected exactly one is_official_build=true in pinned Debian rules")
         text = text.replace("is_official_build=true", "is_official_build=false")
-        text += ('\n# ROCKCHIP NATIVE RUNNER\n'
+        text += ('\n# ROCKCHIP NATIVE RUNNER\n' + STRIP_DEBUG
                  + no_mold + 'concurrent_links=1 blink_symbol_level=0 v8_symbol_level=0\n'
                  '.PHONY: rkmpp-configure\n'
                  'rkmpp-configure: out/Release/gn\n'

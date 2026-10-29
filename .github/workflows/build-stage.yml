@@ -10,12 +10,21 @@ on:
       compile-minutes:
         type: number
         default: 285
+      resume-run:
+        description: Run whose build tree the first stage continues instead of fetching sources
+        type: string
+        default: ''
+      resume-tree:
+        description: Stage number of that run's tree artifact
+        type: number
+        default: 0
     outputs:
       done:
         description: "'true' once the browser is built and packaged"
         value: ${{ jobs.build.outputs.done }}
 permissions:
   contents: read
+  actions: read
 jobs:
   build:
     runs-on: ubuntu-24.04-arm
@@ -29,7 +38,15 @@ jobs:
         id: stage
         run: |
           echo "CHROMIUM_BUILD_DEADLINE=$(( $(date +%s) + ${{ inputs.compile-minutes }} * 60 ))" >> "$GITHUB_ENV"
-          echo "previous=$(( ${{ inputs.stage }} - 1 ))" >> "$GITHUB_OUTPUT"
+          if [ -n "${{ inputs.resume-run }}" ] && [ "${{ inputs.stage }}" = 1 ]; then
+            echo "run=${{ inputs.resume-run }}" >> "$GITHUB_OUTPUT"
+            echo "previous=${{ inputs.resume-tree }}" >> "$GITHUB_OUTPUT"
+            echo "resume=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=${{ github.run_id }}" >> "$GITHUB_OUTPUT"
+            echo "previous=$(( ${{ inputs.stage }} - 1 ))" >> "$GITHUB_OUTPUT"
+            echo "resume=${{ inputs.stage > 1 }}" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/checkout@v4
       - name: Free disk space
         run: |
@@ -58,26 +75,28 @@ jobs:
           cache-from: type=gha,scope=builder
           cache-to: type=gha,mode=max,scope=builder
       - name: Source cache
-        if: inputs.stage == 1
+        if: steps.stage.outputs.resume != 'true'
         uses: actions/cache@v4
         with:
           path: ${{ env.WORK }}/downloads
           key: sources-${{ hashFiles('sources.json') }}
       - name: Fetch sources
-        if: inputs.stage == 1
+        if: steps.stage.outputs.resume != 'true'
         run: |
           mkdir -p "$WORK/tmp"
           docker run --rm --init --user "$(id -u):$(id -g)" --cap-drop=ALL \
             --security-opt=no-new-privileges:true -v "$PWD:/project:ro" -v "$WORK:/work" \
             -e TMPDIR=/work/tmp "$IMAGE" python3 /project/fetch-sources.py --work /work
       - name: Previous build tree
-        if: inputs.stage > 1
+        if: steps.stage.outputs.resume == 'true'
         uses: actions/download-artifact@v4
         with:
           name: tree-${{ steps.stage.outputs.previous }}
+          run-id: ${{ steps.stage.outputs.run }}
+          github-token: ${{ github.token }}
           path: ${{ runner.temp }}/tree
       - name: Unpack build tree
-        if: inputs.stage > 1
+        if: steps.stage.outputs.resume == 'true'
         run: |
           zstd -d --stdout "$RUNNER_TEMP/tree/tree.tar.zst" | tar -C "$WORK" -x
           rm -f "$RUNNER_TEMP/tree/tree.tar.zst"
@@ -111,14 +130,14 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
       - name: Pack build tree
-        if: steps.build.outputs.done == 'false'
+        if: always() && (steps.build.outputs.done == 'false' || steps.build.outcome == 'failure')
         run: |
           mkdir -p "$RUNNER_TEMP/tree"
           tar -C "$WORK" --exclude=./downloads --exclude=./tmp -cf - . \
             | zstd -T0 -3 -o "$RUNNER_TEMP/tree/tree.tar.zst"
           ls -lh "$RUNNER_TEMP/tree"
       - name: Upload build tree
-        if: steps.build.outputs.done == 'false'
+        if: always() && (steps.build.outputs.done == 'false' || steps.build.outcome == 'failure')
         uses: actions/upload-artifact@v4
         with:
           name: tree-${{ inputs.stage }}

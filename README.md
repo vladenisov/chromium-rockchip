@@ -165,6 +165,11 @@ The finishing stage strips the runtime and uploads
 `chromium-rockchip-VERSION-arm64.tar.xz` with its SHA256. Start it manually
 from the Actions tab, or push a `v*` tag to also publish a GitHub prerelease.
 
+A stage that fails still uploads its build tree. After fixing the cause, start
+the workflow with `resume-run` (that run's ID) and `resume-tree` (the stage
+number) to continue from it instead of compiling from scratch. Tree
+artifacts are kept for two days.
+
 To install a downloaded build:
 
 ```sh

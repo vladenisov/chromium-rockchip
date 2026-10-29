@@ -118,6 +118,22 @@ class BuilderTests(unittest.TestCase):
             with mock.patch.dict(builder.os.environ, {"CHROMIUM_COMPONENT_BUILD": "1"}):
                 self.assertIn("rust-std-last", [name for name, _ in runner.steps()])
 
+    def test_links_strip_debug_info_also_in_prepared_tree(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "debian").mkdir()
+            rules = root / "debian/rules"
+            rules.write_text("defines+=is_official_build=true\n")
+            runner = builder.Build.__new__(builder.Build)
+            runner.source = root
+            runner.prepare_rules()
+            runner.prepare_rules()
+            self.assertEqual(rules.read_text().count(builder.STRIP_DEBUG), 1)
+            # A tree prepared before this rule was added gets it on the next run.
+            rules.write_text(rules.read_text().replace(builder.STRIP_DEBUG, ""))
+            runner.prepare_rules()
+            self.assertEqual(rules.read_text().count(builder.STRIP_DEBUG), 1)
+
     def test_compile_pauses_at_deadline_and_records_it(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
