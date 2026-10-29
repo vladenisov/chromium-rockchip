@@ -175,6 +175,35 @@ class InstallerTests(unittest.TestCase):
                                   lambda _: 'Chromium 155.0.8059.84')
         self.assertEqual(first, other['version'].name)
 
+    def test_one_launcher_picks_screen_or_headless(self):
+        self.apply(self.plan())
+        text = (self.root / 'usr/local/bin/chromium-rockchip').read_text()
+        logger = self.base / 'argv-logger'
+        logger.write_text('#!/usr/bin/python3\nimport json,sys\nprint(json.dumps(sys.argv[1:]))\n')
+        logger.chmod(0o755)
+        portable = self.base / 'launcher'
+        portable.write_text(text.replace('/opt/chromium-rockchip/chrome', str(logger)))
+        home = self.base / 'home'
+
+        def run(**env):
+            result = subprocess.run(['sh', str(portable), 'https://example.org'],
+                                    env={'HOME': str(home), 'PATH': '/usr/bin:/bin', **env},
+                                    text=True, capture_output=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            return json.loads(result.stdout)
+
+        screen = run(WAYLAND_DISPLAY='wayland-0')
+        self.assertNotIn('--headless=new', screen)
+        self.assertIn('--ozone-platform-hint=auto', screen)
+        self.assertIn(f'--user-data-dir={home}/.config/chromium-rockchip', screen)
+        self.assertIn('--ozone-platform-hint=auto', run(DISPLAY=':0'))
+        console = run()
+        self.assertIn('--headless=new', console)
+        self.assertIn('--remote-debugging-port=9223', console)
+        # Separate profiles let a desktop window and a headless instance run at once.
+        self.assertIn(f'--user-data-dir={home}/.config/chromium-rockchip-headless', console)
+        self.assertIn('--headless=new', run(WAYLAND_DISPLAY='wayland-0', CHROMIUM_ROCKCHIP_HEADLESS='1'))
+
     def test_launchers_forward_arguments_and_validate_cdp_port(self):
         self.apply(self.plan())
         launcher = self.root / 'usr/local/bin/chromium-rockchip-headless'

@@ -63,30 +63,38 @@ def read_version(chrome):
 
 
 def launcher(headless=False):
-    profile = 'chromium-rockchip-headless' if headless else 'chromium-rockchip'
-    extra = ''
-    if headless:
-        extra = '''port=${CDP_PORT:-9223}
-case "$port" in ''|*[!0-9]*) echo 'Invalid CDP_PORT' >&2; exit 2 ;; esac
-if [ "${#port}" -gt 5 ] || [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; then
-    echo 'Invalid CDP_PORT' >&2; exit 2
-fi
-'''
-    flags = '--enable-gpu --ignore-gpu-blocklist '
-    flags += '--enable-features=AcceleratedVideoDecoder,AcceleratedVideoEncoder '
-    if headless:
-        flags += '--headless=new --ozone-platform=headless --use-gl=angle '
-        flags += '--use-angle=gl-egl --remote-debugging-address=127.0.0.1 '
-        flags += '--remote-debugging-port="$port" '
+    # One build serves both uses: a desktop window when a Wayland or X11 session is
+    # available, otherwise headless with CDP. Each mode keeps its own profile, so a
+    # window and a headless instance can run at the same time.
+    choose = ('headless=1\n' if headless else
+              'headless=${CHROMIUM_ROCKCHIP_HEADLESS:-}\n'
+              'if [ -z "${WAYLAND_DISPLAY:-}" ] && [ -z "${DISPLAY:-}" ]; then\n'
+              '    headless=1\n'
+              'fi\n')
     return f'''#!/bin/sh
 {MARKER}
 set -eu
 test -n "${{HOME:-}}" || {{ echo 'HOME is required' >&2; exit 2; }}
-{extra}profile="${{XDG_CONFIG_HOME:-$HOME/.config}}/{profile}"
+{choose}config="${{XDG_CONFIG_HOME:-$HOME/.config}}"
+set -- --enable-gpu --ignore-gpu-blocklist \\
+    --enable-features=AcceleratedVideoDecoder,AcceleratedVideoEncoder "$@"
+if [ -n "$headless" ]; then
+    port=${{CDP_PORT:-9223}}
+    case "$port" in ''|*[!0-9]*) echo 'Invalid CDP_PORT' >&2; exit 2 ;; esac
+    if [ "${{#port}}" -gt 5 ] || [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; then
+        echo 'Invalid CDP_PORT' >&2; exit 2
+    fi
+    profile="$config/chromium-rockchip-headless"
+    set -- --headless=new --ozone-platform=headless --use-gl=angle --use-angle=gl-egl \\
+        --remote-debugging-address=127.0.0.1 --remote-debugging-port="$port" "$@"
+else
+    profile="$config/chromium-rockchip"
+    set -- --ozone-platform-hint=auto "$@"
+fi
 umask 077
 mkdir -p "$profile"
 export CHROME_DEVEL_SANDBOX=/opt/chromium-rockchip/chrome-sandbox
-exec /opt/chromium-rockchip/chrome --user-data-dir="$profile" {flags}"$@"
+exec /opt/chromium-rockchip/chrome --user-data-dir="$profile" "$@"
 '''
 
 

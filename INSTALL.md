@@ -23,7 +23,8 @@ The Chromium setuid sandbox is installed as root-owned `chrome-sandbox` mode
 Installation must target a filesystem permitting execution and the setuid
 sandbox, or a system where Chromium's user namespace sandbox is available.
 
-Run `chromium-rockchip` for the GUI, or `chromium-rockchip-headless` for CDP.
+Run `chromium-rockchip`: it opens a window in a Wayland/X11 session and runs
+headless with CDP otherwise. `chromium-rockchip-headless` always runs headless.
 They use separate profiles under your config directory. The headless launcher
 binds debugging to loopback, on port 9223 by default; `CDP_PORT` accepts only
 an integer from 1 through 65535. Run both launchers as your regular user.

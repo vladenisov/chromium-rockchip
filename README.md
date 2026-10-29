@@ -1,8 +1,8 @@
 # Chromium Rockchip
 
 Build official Chromium with Rockchip MPP video acceleration on native ARM64
-Debian Bookworm. Headless/CDP is the primary use case; desktop use is supported
-by a separate launcher and profile.
+Debian Bookworm. One build serves both a desktop browser (Wayland or X11) and
+headless automation over CDP; the launcher picks the mode automatically.
 
 **Experimental:** with this patch set Chromium 155 decodes H.264 through
 V4L2/MPP on RK3588 in headless mode: the verifier reports `V4L2VideoDecoder`
@@ -108,10 +108,12 @@ sudo python3 install.py --stage /path/to/chromium-work/stage --apply
 
 See [INSTALL.md](INSTALL.md) for installation details and rollback.
 
-For headless automation, use `chromium-rockchip-headless`. Its CDP endpoint
-binds to `127.0.0.1:9223`; change the port with `CDP_PORT`. It uses its own
-persistent headless profile. `chromium-rockchip` opens the desktop browser
-with a separate desktop profile.
+`chromium-rockchip` opens a browser window when a Wayland or X11 session is
+available (`WAYLAND_DISPLAY` or `DISPLAY` is set) and otherwise runs headless.
+Set `CHROMIUM_ROCKCHIP_HEADLESS=1`, or run `chromium-rockchip-headless`, to
+force headless mode from a desktop session. Headless mode serves CDP on
+`127.0.0.1:9223`; change the port with `CDP_PORT`. The two modes use separate
+profiles, so a window and a headless instance can run at the same time.
 
 The launchers enable GPU/video acceleration without disabling Chromium's
 sandbox. Rendering and video compatibility still depend on the actual kernel,
