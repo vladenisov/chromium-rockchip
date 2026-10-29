@@ -60,7 +60,8 @@ jobs:
           if [ "${mnt_free:-0}" -gt "$root_free" ]; then
             sudo mkdir -p /mnt/work && sudo chown "$(id -u):$(id -g)" /mnt/work && work=/mnt/work
           else
-            mkdir -p "$HOME/work" && work=$HOME/work
+            # Not $HOME/work: that is the runner workspace holding this checkout.
+            mkdir -p "$HOME/chromium-work" && work=$HOME/chromium-work
           fi
           echo "WORK=$work" >> "$GITHUB_ENV"
           df -h / /mnt || true
@@ -98,7 +99,11 @@ jobs:
       - name: Unpack build tree
         if: steps.stage.outputs.resume == 'true'
         run: |
-          zstd -d --stdout "$RUNNER_TEMP/tree/tree.tar.zst" | tar -C "$WORK" -x
+          # Trees packed before the work directory moved also hold the runner workspace;
+          # restore only the build state so this checkout's scripts are the ones that run.
+          zstd -d --stdout "$RUNNER_TEMP/tree/tree.tar.zst" | tar -C "$WORK" -x \
+            --exclude=./chromium-rockchip --exclude=./_temp --exclude=./_actions \
+            --exclude=./_tool --exclude=./_PipelineMapping
           rm -f "$RUNNER_TEMP/tree/tree.tar.zst"
           mkdir -p "$WORK/tmp"
           df -h "$WORK"
