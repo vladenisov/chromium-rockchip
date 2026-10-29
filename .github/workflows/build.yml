@@ -9,8 +9,8 @@ on:
         default: ''
       resume-tree:
         description: Stage number of the tree artifact to continue from
-        type: number
-        default: 0
+        type: string
+        default: ''
   push:
     tags: ['v*']
 permissions:
@@ -25,7 +25,7 @@ jobs:
     with:
       stage: 1
       resume-run: ${{ inputs.resume-run || '' }}
-      resume-tree: ${{ inputs.resume-tree || 0 }}
+      resume-tree: ${{ inputs.resume-tree || '' }}
   stage-2:
     needs: stage-1
     if: needs.stage-1.outputs.done == 'false'

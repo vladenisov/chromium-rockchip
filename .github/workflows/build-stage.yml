@@ -16,8 +16,8 @@ on:
         default: ''
       resume-tree:
         description: Stage number of that run's tree artifact
-        type: number
-        default: 0
+        type: string
+        default: ''
     outputs:
       done:
         description: "'true' once the browser is built and packaged"
