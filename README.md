@@ -7,9 +7,10 @@ headless automation over CDP; the launcher picks the mode automatically.
 **Experimental:** with this patch set Chromium 155 decodes H.264 through
 V4L2/MPP on RK3588 in headless mode: the verifier reports `V4L2VideoDecoder`
 as a platform decoder at full frame rate, and decoded NV12 frames are shown
-without a copy (patch 0021). This was checked with a native component build;
-other codecs, resolutions and desktop (X11/Wayland) sessions are not verified
-yet.
+without a copy (patch 0021). This was checked on RK3588 (Mali-G610, Panfrost
+Mesa) with both a native component build and the static build produced by the
+GitHub Actions workflow. Other codecs, resolutions and desktop (X11/Wayland)
+sessions are not verified yet.
 
 ## Pinned inputs
 
