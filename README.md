@@ -173,6 +173,10 @@ the workflow with `resume-run` (that run's ID) and `resume-tree` (the stage
 number) to continue from it instead of compiling from scratch. Tree
 artifacts are kept for two days.
 
+Ready builds are published under
+[Releases](https://github.com/vladenisov/chromium-rockchip/releases). Pushing a
+tag such as `v155.0.8059.84-rk2` builds and publishes the next one.
+
 To install a downloaded build:
 
 ```sh
