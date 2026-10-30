@@ -44,6 +44,26 @@ video group when it differs from the helper's group database. Mount only the
 required `/opt`, `/usr/local/bin`, `/usr/share/applications`,
 `/etc/tmpfiles.d`, and `/dev` destinations into that helper.
 
+## Make it the default browser
+
+The desktop entry declares the web MIME types, so it can be chosen in the
+desktop's default-application settings, or per user with:
+
+```sh
+xdg-settings set default-web-browser chromium-rockchip.desktop
+```
+
+For programs that call `x-www-browser` or `gnome-www-browser`:
+
+```sh
+sudo update-alternatives --install /usr/bin/x-www-browser x-www-browser /usr/local/bin/chromium-rockchip 210
+sudo update-alternatives --install /usr/bin/gnome-www-browser gnome-www-browser /usr/local/bin/chromium-rockchip 210
+sudo update-alternatives --set x-www-browser /usr/local/bin/chromium-rockchip
+sudo update-alternatives --set gnome-www-browser /usr/local/bin/chromium-rockchip
+```
+
+The distribution `chromium` command keeps starting the stock browser.
+
 ## Roll back
 
 List the protected `chromium-rockchip-*` version directories under `/opt`.

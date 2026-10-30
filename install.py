@@ -123,6 +123,7 @@ Exec=/usr/local/bin/chromium-rockchip %U
 Icon=/opt/chromium-rockchip/chromium.png
 Terminal=false
 Categories=Network;WebBrowser;
+MimeType=text/html;application/xhtml+xml;x-scheme-handler/http;x-scheme-handler/https;
 StartupNotify=true
 ''', 0o644),
         'etc/tmpfiles.d/chromium-rockchip.conf': (

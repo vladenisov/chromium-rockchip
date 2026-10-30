@@ -204,6 +204,12 @@ class InstallerTests(unittest.TestCase):
         self.assertIn(f'--user-data-dir={home}/.config/chromium-rockchip-headless', console)
         self.assertIn('--headless=new', run(WAYLAND_DISPLAY='wayland-0', CHROMIUM_ROCKCHIP_HEADLESS='1'))
 
+    def test_desktop_entry_can_be_chosen_as_default_browser(self):
+        self.apply(self.plan())
+        entry = (self.root / 'usr/share/applications/chromium-rockchip.desktop').read_text()
+        self.assertIn('MimeType=text/html;application/xhtml+xml;x-scheme-handler/http;x-scheme-handler/https;', entry)
+        self.assertIn('Exec=/usr/local/bin/chromium-rockchip %U', entry)
+
     def test_launchers_forward_arguments_and_validate_cdp_port(self):
         self.apply(self.plan())
         launcher = self.root / 'usr/local/bin/chromium-rockchip-headless'
