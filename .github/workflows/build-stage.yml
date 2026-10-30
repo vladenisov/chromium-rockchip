@@ -156,7 +156,7 @@ jobs:
           prefix="$WORK/stage/opt/chromium-rockchip"
           # Keep chrome_sandbox byte-identical; it becomes the setuid helper on install.
           find "$prefix" -type f \( -name chrome -o -name chrome_crashpad_handler -o -name '*.so' -o -name '*.so.*' \) \
-            -exec strip --strip-unneeded {} +
+            ! -name '*.TOC' -exec strip --strip-unneeded {} +
           mkdir -p dist
           name="chromium-rockchip-$version-arm64"
           tar -C "$WORK/stage" --owner=0 --group=0 --numeric-owner -cf - opt | xz -T0 -6 > "dist/$name.tar.xz"

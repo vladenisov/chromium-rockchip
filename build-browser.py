@@ -115,6 +115,8 @@ def stage_runtime(output, stage, source=None):
     for entry in output.iterdir():
         runtime = (entry.name in binaries or entry.name.endswith((".pak", ".dat", ".bin", ".json"))
                    or entry.name.endswith(".so") or ".so." in entry.name)
+        # Ninja's .TOC interface stamps sit next to the libraries but are build-only.
+        runtime = runtime and not entry.name.endswith(".TOC")
         if runtime and entry.is_file():
             shutil.copy2(entry, stage / entry.name, follow_symlinks=True)
     for directory in ("resources", "swiftshader"):

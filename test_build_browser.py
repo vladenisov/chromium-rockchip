@@ -24,7 +24,7 @@ class BuilderTests(unittest.TestCase):
             root = Path(tmp)
             output, stage = root / "output", root / "stage"
             output.mkdir()
-            for name in ("chrome", "chrome_sandbox", "chrome_crashpad_handler", "libbase.so", "libffmpeg.so.1", "resources.pak", "icudtl.dat", "snapshot_blob.bin", "vk_swiftshader_icd.json", "ninja", "build.ninja", "args.gn", "v8_context_snapshot_generator"):
+            for name in ("chrome", "chrome_sandbox", "chrome_crashpad_handler", "libbase.so", "libffmpeg.so.1", "resources.pak", "icudtl.dat", "snapshot_blob.bin", "vk_swiftshader_icd.json", "ninja", "build.ninja", "args.gn", "v8_context_snapshot_generator", "libEGL.so.TOC", "libvulkan.so.1.TOC"):
                 (output / name).write_text(name)
             for directory in ("obj", "gen", "locales", "resources"):
                 (output / directory).mkdir()
@@ -36,7 +36,7 @@ class BuilderTests(unittest.TestCase):
             builder.stage_runtime(output, stage)
             for name in ("chrome", "libbase.so", "libffmpeg.so.1", "resources.pak", "icudtl.dat", "snapshot_blob.bin", "vk_swiftshader_icd.json", "locales/ru.pak", "locales/en-US.pak", "resources/item", "lib/libv4l2.so.0"):
                 self.assertTrue((stage / name).is_file(), name)
-            for name in ("obj", "gen", "ninja", "build.ninja", "args.gn", "v8_context_snapshot_generator", "locales/de.pak"):
+            for name in ("obj", "gen", "ninja", "build.ninja", "args.gn", "v8_context_snapshot_generator", "locales/de.pak", "libEGL.so.TOC", "libvulkan.so.1.TOC"):
                 self.assertFalse((stage / name).exists(), name)
 
     def test_rust_allocator_added_to_component_once(self):
