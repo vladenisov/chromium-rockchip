@@ -47,14 +47,16 @@ required `/opt`, `/usr/local/bin`, `/usr/share/applications`,
 ## Desktop window on RK3588
 
 Hardware video decoding in a window needs a Wayland session. On the tested
-board GNOME Wayland showed a black screen until KMS modifiers were disabled:
+board GDM's own session is X11 and offers no Wayland choice, so GNOME Wayland
+was started from the text console with the display manager stopped:
 
 ```sh
-MUTTER_DEBUG_USE_KMS_MODIFIERS=0 XDG_SESSION_TYPE=wayland dbus-run-session -- gnome-session
+XDG_SESSION_TYPE=wayland dbus-run-session -- gnome-session
 ```
 
-Run this from the text console with the display manager stopped. X11 sessions,
-including xrdp, play video with the software decoder.
+The first attempt on that board showed a black screen and the second did not;
+the cause is unknown. X11 sessions, including xrdp, play video with the
+software decoder.
 
 ## Make it the default browser
 
