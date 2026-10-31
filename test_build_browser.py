@@ -141,6 +141,24 @@ class BuilderTests(unittest.TestCase):
             (out / "toolchain.ninja").write_text("command = clang++ -Wl,--strip-debug\n")
             runner.check_link_flags()
 
+    def test_bundled_typescript_lib_removed_before_debian_configure(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            typescript = root / builder.TYPESCRIPT_DIR
+            (typescript / "lib").mkdir(parents=True)
+            (typescript / "lib/tsc.js").write_text("bundled")
+            (typescript / "package.json").write_text("{}")
+            runner = builder.Build.__new__(builder.Build)
+            runner.source = root
+            runner.drop_bundled_typescript()
+            self.assertFalse((typescript / "lib").exists())
+            # Once Debian's rules switched to the system compiler, its lib stays.
+            (typescript / "lib").mkdir()
+            (typescript / "package.json").unlink()
+            (typescript / "package.json").symlink_to("/usr/share/nodejs/typescript/package.json")
+            runner.drop_bundled_typescript()
+            self.assertTrue((typescript / "lib").is_dir())
+
     def test_compile_pauses_at_deadline_and_records_it(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

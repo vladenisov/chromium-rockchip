@@ -30,6 +30,7 @@ UNBUNDLE_GN = "build/toolchain/linux/unbundle/BUILD.gn"
 UNBUNDLE_LDFLAGS = '  extra_ldflags = getenv("LDFLAGS")\n\n  toolchain_args = {\n    current_cpu = current_cpu\n    current_os = current_os'
 STRIP_DEBUG = '  extra_ldflags = getenv("LDFLAGS") + " -Wl,--strip-debug"\n'
 STRIP_DEBUG_FLAG = "-Wl,--strip-debug"
+TYPESCRIPT_DIR = "third_party/node/node_modules/typescript"
 V4L2_GN = "media/gpu/v4l2/BUILD.gn"
 V4L2_DEPS = '  deps = [\n    ":v4l2_status",\n'
 
@@ -294,7 +295,15 @@ class Build:
         archive = self.work / "downloads/chromium_156.0.8078.73.orig-pre-gen.tar.xz"
         self.once("pregen-extracted", lambda: self.command(["tar", "-xJf", str(archive)]))
 
+    def drop_bundled_typescript(self):
+        # Debian's rules create this directory for the system compiler and fail if it exists:
+        # its source tarball leaves it out, but Google's has shipped it since Chromium 156.
+        typescript = self.source / TYPESCRIPT_DIR
+        if (typescript / "lib").is_dir() and not (typescript / "package.json").is_symlink():
+            shutil.rmtree(typescript / "lib")
+
     def configure(self):
+        self.drop_bundled_typescript()
         self.once("debian-configured", lambda: self.command([
             "make", "-f", "debian/rules", "override_dh_auto_configure", "njobs=1"]))
         self.command(["make", "-f", "debian/rules", "out/Release/gn", "njobs=1"])
