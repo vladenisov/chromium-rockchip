@@ -12,7 +12,7 @@ import subprocess
 import sys
 import time
 
-VERSION = "155.0.8059.84"
+VERSION = "156.0.8078.79"
 PREFIX = Path("opt/chromium-rockchip")
 RUST_ALLOCATOR_COMPONENTS = (
     ("third_party/webrtc_overrides/BUILD.gn", 'component("webrtc_component") {'),
@@ -182,7 +182,7 @@ class Build:
             self.command(["quilt", "push", "-a"], env={"QUILT_PATCHES": "debian/patches"})
 
     def patch_rockchip(self):
-        patches = sorted((self.work / "patches/155").glob("*.patch"))
+        patches = sorted((self.work / "patches/156").glob("*.patch"))
         if len(patches) != 9:
             raise RuntimeError(f"Expected 9 reviewed Rockchip patches, found {len(patches)}")
         for patch in patches:
@@ -291,7 +291,7 @@ class Build:
         gn.write_text(text.replace(V4L2_DEPS, patched, 1))
 
     def prepare_pregen(self):
-        archive = self.work / "downloads/chromium_155.0.8059.79.orig-pre-gen.tar.xz"
+        archive = self.work / "downloads/chromium_156.0.8078.73.orig-pre-gen.tar.xz"
         self.once("pregen-extracted", lambda: self.command(["tar", "-xJf", str(archive)]))
 
     def configure(self):

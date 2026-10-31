@@ -37,11 +37,11 @@ frames reach the compositor without a copy; headless needs patch 0021 for this.
 
 ## Pinned inputs
 
-- Official Chromium **155.0.8059.84**, the Linux stable release checked on
+- Official Chromium **156.0.8078.79**, the Linux stable release checked on
   2026-10-19, downloaded directly from Google's official source archive.
 - Debian Bookworm build compatibility patches and pre-generated build inputs
-  from **155.0.8059.79-1~deb12u1**. These supply the system LLVM/Rust integration;
-  the Chromium source being compiled remains 155.0.8059.84.
+  from **156.0.8078.73-1~deb12u1**. These supply the system LLVM/Rust integration;
+  the Chromium source being compiled remains 156.0.8078.79.
 - Rockchip's maintained Chromium 152 V4L2/MPP patches, adapted to 155, with a
   separate patch for sandbox device/library access.
 - Pinned MPP, RGA, libv4l-rkmpp and patched libv4l2 sources.
@@ -49,7 +49,7 @@ frames reach the compositor without a copy; headless needs patch 0021 for this.
 Source URLs, sizes and SHA256 checksums are in [sources.json](sources.json).
 Patches retain their upstream author information; see
 [LICENSES.md](LICENSES.md) and the
-[port report](patches/chromium/155.0.8059.84/PORT-REPORT.md).
+[port report](patches/chromium/156.0.8078.79/PORT-REPORT.md).
 The system FFmpeg is not used to add Chromium video decoding: Chromium needs
 its own V4L2/MPP integration.
 
@@ -198,13 +198,13 @@ artifacts are kept for two days.
 
 Ready builds are published under
 [Releases](https://github.com/vladenisov/chromium-rockchip/releases). Pushing a
-tag such as `v155.0.8059.84-rk2` builds and publishes the next one.
+tag such as `v156.0.8078.79-rk2` builds and publishes the next one.
 
 To install a downloaded build:
 
 ```sh
-sha256sum --check chromium-rockchip-155.0.8059.84-arm64.tar.xz.sha256
-mkdir stage && tar -xJf chromium-rockchip-155.0.8059.84-arm64.tar.xz -C stage
+sha256sum --check chromium-rockchip-156.0.8078.79-arm64.tar.xz.sha256
+mkdir stage && tar -xJf chromium-rockchip-156.0.8078.79-arm64.tar.xz -C stage
 python3 install.py --stage stage
 sudo python3 install.py --stage stage --apply
 ```

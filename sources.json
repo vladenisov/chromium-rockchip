@@ -1,25 +1,25 @@
 {
   "chromium": {
-    "version": "155.0.8059.84",
-    "url": "https://commondatastorage.googleapis.com/chromium-browser-official/chromium-155.0.8059.84-lite.tar.xz",
-    "sha256": "2063834f528029ad02a6a3de6d229c3e8b19bc43864be397944cbda18d7ee680",
-    "size": 2021234676
+    "version": "156.0.8078.79",
+    "url": "https://commondatastorage.googleapis.com/chromium-browser-official/chromium-156.0.8078.79-lite.tar.xz",
+    "sha256": "d9e8b637dbdd3a1cccb4966e81a66e3f3c4c29f5ce9732a70f5a4f949cd03923",
+    "size": 2009554628
   },
   "debian": {
-    "version": "155.0.8059.79-1~deb12u1",
+    "version": "156.0.8078.73-1~deb12u1",
     "packaging": {
-      "url": "https://snapshot.debian.org/archive/debian-security/20261015T183338Z/pool/updates/main/c/chromium/chromium_155.0.8059.79-1~deb12u1.debian.tar.xz",
-      "sha256": "33773ce13c4c2f18c2d95bb5a510353705685b0e072dde6952facdec45c77acf",
-      "size": 589708
+      "url": "https://snapshot.debian.org/archive/debian-security/20261029T031316Z/pool/updates/main/c/chromium/chromium_156.0.8078.73-1~deb12u1.debian.tar.xz",
+      "sha256": "2d53da995166e403934d232b1c006dde2d7107bfdb1ffed8c35a3b4f6d045f33",
+      "size": 514196
     },
     "pregen": {
-      "url": "https://snapshot.debian.org/archive/debian-security/20261015T173155Z/pool/updates/main/c/chromium/chromium_155.0.8059.79.orig-pre-gen.tar.xz",
-      "sha256": "75fc1329e91581b28fb4b24ad3661372d80b548d39badbd99c957d59c9d28650",
-      "size": 17201300
+      "url": "https://snapshot.debian.org/archive/debian-security/20261029T020000Z/pool/updates/main/c/chromium/chromium_156.0.8078.73.orig-pre-gen.tar.xz",
+      "sha256": "0764ead49b237c01d07db608b113e014f807c8e5f246a2619901bc1e8616e665",
+      "size": 18226388
     }
   },
   "rockchip_patches": {
-    "directory": "patches/chromium/155.0.8059.84",
+    "directory": "patches/chromium/156.0.8078.79",
     "count": 9,
     "upstream_ref": "9d84a3b12b76e34ef08bdde87405bb19ec45d434"
   }

@@ -37,7 +37,7 @@ fixture:
 verify:
 	$(PYTHON) verify-browser.py --binary "$(BROWSER)" \
 	  --video "$(WORK_ABS)/fixtures/h264-720p.mp4" --output "$(WORK_ABS)/verification.json" \
-	  --expected-version 155.0.8059.84
+	  --expected-version 156.0.8078.79
 
 status:
 	$(PYTHON) -m json.tool "$(WORK_ABS)/build-status.json"

@@ -16,7 +16,7 @@ class BuilderTests(unittest.TestCase):
             root = Path(tmp)
             (root / "chrome").mkdir()
             (root / "chrome/VERSION").write_text("MAJOR=155\nMINOR=0\nBUILD=8059\nPATCH=79\n")
-            with self.assertRaisesRegex(ValueError, "155.0.8059.84"):
+            with self.assertRaisesRegex(ValueError, "156.0.8078.79"):
                 builder.verify_version(root)
 
     def test_runtime_contains_components_and_resources_without_build_tree(self):

@@ -12,7 +12,7 @@ import stat
 import subprocess
 import tempfile
 
-VERSION = '155.0.8059.84'
+VERSION = '156.0.8078.79'
 MARKER = '# Managed by chromium-rockchip installer v1'
 REQUIRED_FILES = (
     'chrome', 'icudtl.dat', 'resources.pak', 'locales/en-US.pak',

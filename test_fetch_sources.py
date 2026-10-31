@@ -74,11 +74,11 @@ class FetchTests(unittest.TestCase):
         version = "MAJOR=155\nMINOR=0\nBUILD=8059\nPATCH=84\n"
         archive(source, [("chromium/chrome/VERSION", version), ("chromium/nested/file", "ok")])
         target = self.root / "chromium"
-        fetch.extract(source, target, strip_root=True, version="155.0.8059.84")
+        fetch.extract(source, target, strip_root=True, version="156.0.8078.79")
         self.assertEqual((target / "nested/file").read_text(), "ok")
         self.assertTrue((target / fetch.MARKER).exists())
         (target / "nested/file").write_text("patched")
-        fetch.extract(source, target, strip_root=True, version="155.0.8059.84")
+        fetch.extract(source, target, strip_root=True, version="156.0.8078.79")
         self.assertEqual((target / "nested/file").read_text(), "patched")
         archive(source, [("debian/rules", "rules")])
         fetch.extract(source, self.root / "packaging", required="debian/rules")
@@ -89,7 +89,7 @@ class FetchTests(unittest.TestCase):
         archive(source, [("root/file", "x")])
         target = self.root / "chromium"
         with self.assertRaises(ValueError):
-            fetch.extract(source, target, strip_root=True, version="155.0.8059.84")
+            fetch.extract(source, target, strip_root=True, version="156.0.8078.79")
         self.assertFalse(target.exists())
         self.assertFalse(list(self.root.glob(".chromium.extract-*")))
 

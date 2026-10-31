@@ -1,0 +1,35 @@
+name: Patch check
+# Fast port check for a new Chromium version: no compiling, hosted x86-64 runner is enough.
+on:
+  workflow_dispatch:
+  push:
+    branches: ['chromium-*']
+permissions:
+  contents: read
+jobs:
+  patches:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tools
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq quilt
+      - name: Fetch pinned sources
+        run: |
+          mkdir -p "$RUNNER_TEMP/work"
+          python3 fetch-sources.py --work "$RUNNER_TEMP/work"
+      - name: Apply patches
+        run: sh check-patches.sh "$RUNNER_TEMP/work"
+      - name: Report
+        if: always()
+        run: cat "$RUNNER_TEMP/work/patch-report.md" >> "$GITHUB_STEP_SUMMARY"
+      - name: Rejects and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: patch-check
+          path: |
+            ${{ runner.temp }}/work/rejects/
+            ${{ runner.temp }}/work/*.log
+            ${{ runner.temp }}/work/patch-report.md
+          if-no-files-found: ignore

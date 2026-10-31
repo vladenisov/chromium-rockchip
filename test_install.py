@@ -29,14 +29,14 @@ class InstallerTests(unittest.TestCase):
 
     def plan(self):
         return installer.prepare(self.stage, self.root, 44,
-                                 lambda _: 'Chromium 155.0.8059.84\n')
+                                 lambda _: 'Chromium 156.0.8078.79\n')
 
     def apply(self, plan):
         return installer.apply(plan, chown=lambda *_: None)
 
     def test_default_cli_dry_run_does_not_write_host(self):
         chrome = self.stage / 'chrome'
-        chrome.write_text('#!/bin/sh\nprintf "Chromium 155.0.8059.84\\n"\n')
+        chrome.write_text('#!/bin/sh\nprintf "Chromium 156.0.8078.79\\n"\n')
         p = subprocess.run(['python3', str(HERE / 'install.py'), '--stage',
                             str(self.stage), '--root', str(self.root),
                             '--video-gid', '44'], text=True, capture_output=True)
@@ -67,7 +67,7 @@ class InstallerTests(unittest.TestCase):
         (wrapper / 'opt/chromium-rockchip').symlink_to(self.stage)
         with self.assertRaisesRegex(ValueError, 'symlink'):
             installer.prepare(wrapper, self.root, 44,
-                              lambda _: 'Chromium 155.0.8059.84')
+                              lambda _: 'Chromium 156.0.8078.79')
 
     def test_symlinked_destination_parent_is_rejected(self):
         unrelated = self.base / 'unrelated'
@@ -97,7 +97,7 @@ class InstallerTests(unittest.TestCase):
         self.assertIn('- enc\\n\n', tmpfiles)
 
     def test_version_mismatch_rejected(self):
-        with self.assertRaisesRegex(ValueError, '155.0.8059.84'):
+        with self.assertRaisesRegex(ValueError, '156.0.8078.79'):
             installer.prepare(self.stage, self.root, 44,
                               lambda _: 'Chromium 132.0.0.0')
 
@@ -172,7 +172,7 @@ class InstallerTests(unittest.TestCase):
         copied = self.base / 'same-artifact'
         shutil.copytree(self.stage, copied)
         other = installer.prepare(copied, self.root, 44,
-                                  lambda _: 'Chromium 155.0.8059.84')
+                                  lambda _: 'Chromium 156.0.8078.79')
         self.assertEqual(first, other['version'].name)
 
     def test_one_launcher_picks_screen_or_headless(self):
