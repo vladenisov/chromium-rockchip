@@ -98,7 +98,9 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: write
+      actions: write
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: browser
@@ -110,6 +112,15 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" \
-            --title "$GITHUB_REF_NAME" --prerelease \
-            --notes "Native ARM64 build for RK3588 with V4L2/MPP video decoding. Built on a hosted runner without Rockchip hardware; see README for what was verified."
+          gh release create "$GITHUB_REF_NAME" dist/* install.py --repo "$GITHUB_REPOSITORY" \
+            --title "Chromium ${GITHUB_REF_NAME#v} for RK3588" --prerelease \
+            --notes-file .github/release-notes.md
+      - name: Delete build trees
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" \
+            --jq '.artifacts[] | select(.name | startswith("tree-")) | .id' |
+            while read -r id; do
+              gh api --method DELETE "repos/$GITHUB_REPOSITORY/actions/artifacts/$id"
+            done

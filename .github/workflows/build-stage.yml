@@ -36,11 +36,18 @@ jobs:
     steps:
       - name: Deadline
         id: stage
+        env:
+          RESUME_RUN: ${{ inputs.resume-run }}
+          RESUME_TREE: ${{ inputs.resume-tree }}
         run: |
           echo "CHROMIUM_BUILD_DEADLINE=$(( $(date +%s) + ${{ inputs.compile-minutes }} * 60 ))" >> "$GITHUB_ENV"
-          if [ -n "${{ inputs.resume-run }}" ] && [ "${{ inputs.stage }}" = 1 ]; then
-            echo "run=${{ inputs.resume-run }}" >> "$GITHUB_OUTPUT"
-            echo "previous=${{ inputs.resume-tree }}" >> "$GITHUB_OUTPUT"
+          if [ -n "$RESUME_RUN" ] && [ "${{ inputs.stage }}" = 1 ]; then
+            case "$RESUME_RUN$RESUME_TREE" in
+              *[!0-9]*) echo '::error::resume-run and resume-tree must be numbers'; exit 1 ;;
+            esac
+            test -n "$RESUME_TREE"
+            echo "run=$RESUME_RUN" >> "$GITHUB_OUTPUT"
+            echo "previous=$RESUME_TREE" >> "$GITHUB_OUTPUT"
             echo "resume=true" >> "$GITHUB_OUTPUT"
           else
             echo "run=${{ github.run_id }}" >> "$GITHUB_OUTPUT"

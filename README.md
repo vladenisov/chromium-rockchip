@@ -4,16 +4,36 @@ Build official Chromium with Rockchip MPP video acceleration on native ARM64
 Debian Bookworm. One build serves both a desktop browser (Wayland or X11) and
 headless automation over CDP; the launcher picks the mode automatically.
 
-**Experimental:** with this patch set Chromium 155 decodes H.264 through
-V4L2/MPP on RK3588 in headless mode: the verifier reports `V4L2VideoDecoder`
-as a platform decoder at full frame rate, and decoded NV12 frames are shown
-without a copy (patch 0021). This was checked on RK3588 (Mali-G610, Panfrost
-Mesa) with both a native component build and the static build produced by the
-GitHub Actions workflow. In a window, the same H.264 test uses the hardware
-decoder in a GNOME Wayland session on the board's monitor. Under X11 (local
-or xrdp) Chromium falls back to software decoding. A VP9 4K60 YouTube video also
-played with the hardware decoder and minimal frame drops in that Wayland session.
-Other codecs, including AV1, are not verified yet.
+[![Checks](https://github.com/vladenisov/chromium-rockchip/actions/workflows/checks.yml/badge.svg)](https://github.com/vladenisov/chromium-rockchip/actions/workflows/checks.yml)
+[![Build](https://github.com/vladenisov/chromium-rockchip/actions/workflows/build.yml/badge.svg)](https://github.com/vladenisov/chromium-rockchip/actions/workflows/build.yml)
+[![Release](https://img.shields.io/github/v/release/vladenisov/chromium-rockchip?include_prereleases)](https://github.com/vladenisov/chromium-rockchip/releases)
+
+## Quick start
+
+Download the archive, its `.sha256` and `install.py` from
+[Releases](https://github.com/vladenisov/chromium-rockchip/releases), then:
+
+```sh
+sha256sum --check chromium-rockchip-*-arm64.tar.xz.sha256
+mkdir stage && tar -xJf chromium-rockchip-*-arm64.tar.xz -C stage
+python3 install.py --stage stage            # dry run
+sudo python3 install.py --stage stage --apply
+chromium-rockchip
+```
+
+## Status
+
+**Experimental.** Tested on one board: ROCK 5B+ (RK3588, BSP 6.1 kernel, Mali-G610
+with Panfrost Mesa).
+
+| Session | Video | Decoder |
+| --- | --- | --- |
+| Headless / CDP | H.264 720p (verifier) | hardware |
+| GNOME Wayland on the monitor | H.264 720p (verifier), VP9 4K60 on YouTube | hardware |
+| X11, local or xrdp | H.264 720p | software (FFmpeg) |
+
+AV1, HEVC and other codecs and resolutions are not verified yet. Decoded NV12
+frames reach the compositor without a copy; headless needs patch 0021 for this.
 
 ## Pinned inputs
 
