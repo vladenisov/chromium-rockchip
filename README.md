@@ -9,8 +9,10 @@ V4L2/MPP on RK3588 in headless mode: the verifier reports `V4L2VideoDecoder`
 as a platform decoder at full frame rate, and decoded NV12 frames are shown
 without a copy (patch 0021). This was checked on RK3588 (Mali-G610, Panfrost
 Mesa) with both a native component build and the static build produced by the
-GitHub Actions workflow. Other codecs, resolutions and desktop (X11/Wayland)
-sessions are not verified yet.
+GitHub Actions workflow. In a window, the same H.264 test uses the hardware
+decoder in a GNOME Wayland session on the board's monitor. Under X11 (local
+or xrdp) Chromium falls back to software decoding. Other codecs and resolutions
+are not verified yet.
 
 ## Pinned inputs
 

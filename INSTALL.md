@@ -44,6 +44,18 @@ video group when it differs from the helper's group database. Mount only the
 required `/opt`, `/usr/local/bin`, `/usr/share/applications`,
 `/etc/tmpfiles.d`, and `/dev` destinations into that helper.
 
+## Desktop window on RK3588
+
+Hardware video decoding in a window needs a Wayland session. On the tested
+board GNOME Wayland showed a black screen until KMS modifiers were disabled:
+
+```sh
+MUTTER_DEBUG_USE_KMS_MODIFIERS=0 XDG_SESSION_TYPE=wayland dbus-run-session -- gnome-session
+```
+
+Run this from the text console with the display manager stopped. X11 sessions,
+including xrdp, play video with the software decoder.
+
 ## Make it the default browser
 
 The desktop entry declares the web MIME types, so it can be chosen in the
