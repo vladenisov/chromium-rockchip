@@ -71,7 +71,7 @@ class FetchTests(unittest.TestCase):
 
     def test_good_source_and_packaging(self):
         source = self.root / "source.tar"
-        version = "MAJOR=155\nMINOR=0\nBUILD=8059\nPATCH=84\n"
+        version = "MAJOR=156\nMINOR=0\nBUILD=8078\nPATCH=79\n"
         archive(source, [("chromium/chrome/VERSION", version), ("chromium/nested/file", "ok")])
         target = self.root / "chromium"
         fetch.extract(source, target, strip_root=True, version="156.0.8078.79")

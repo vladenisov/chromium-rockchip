@@ -1,4 +1,4 @@
-IMAGE ?= chromium-rockchip-builder:155-bookworm
+IMAGE ?= chromium-rockchip-builder:156-bookworm
 WORK_DIR ?= $(CURDIR)/work
 MEMORY ?= 3g
 MEMORY_SWAP ?= 8g
