@@ -11,8 +11,9 @@ without a copy (patch 0021). This was checked on RK3588 (Mali-G610, Panfrost
 Mesa) with both a native component build and the static build produced by the
 GitHub Actions workflow. In a window, the same H.264 test uses the hardware
 decoder in a GNOME Wayland session on the board's monitor. Under X11 (local
-or xrdp) Chromium falls back to software decoding. Other codecs and resolutions
-are not verified yet.
+or xrdp) Chromium falls back to software decoding. A VP9 4K60 YouTube video also
+played with the hardware decoder and minimal frame drops in that Wayland session.
+Other codecs, including AV1, are not verified yet.
 
 ## Pinned inputs
 
