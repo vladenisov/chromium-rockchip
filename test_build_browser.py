@@ -148,16 +148,21 @@ class BuilderTests(unittest.TestCase):
             (typescript / "lib").mkdir(parents=True)
             (typescript / "lib/tsc.js").write_text("bundled")
             (typescript / "package.json").write_text("{}")
+            native = root / builder.TYPESCRIPT_NATIVE_DIR
+            (native / "src/lib").mkdir(parents=True)
             runner = builder.Build.__new__(builder.Build)
             runner.source = root
             runner.drop_bundled_typescript()
             self.assertFalse((typescript / "lib").exists())
-            # Once Debian's rules switched to the system compiler, its lib stays.
+            self.assertFalse(native.exists())
+            # Once Debian's rules switched to the system compiler, its files stay.
             (typescript / "lib").mkdir()
+            (native / "src").mkdir(parents=True)
             (typescript / "package.json").unlink()
             (typescript / "package.json").symlink_to("/usr/share/nodejs/typescript/package.json")
             runner.drop_bundled_typescript()
             self.assertTrue((typescript / "lib").is_dir())
+            self.assertTrue(native.is_dir())
 
     def test_compile_pauses_at_deadline_and_records_it(self):
         with tempfile.TemporaryDirectory() as tmp:
