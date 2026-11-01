@@ -34,15 +34,17 @@ with Panfrost Mesa).
 
 AV1, HEVC and other codecs and resolutions are not verified yet. Decoded NV12
 frames reach the compositor without a copy; headless needs patch 0021 for this.
+On Chromium 156 only the headless row has been checked so far; the other rows
+come from 155.
 
 ## Pinned inputs
 
 - Official Chromium **156.0.8078.79**, the Linux stable release checked on
-  2026-10-19, downloaded directly from Google's official source archive.
+  2026-11-01, downloaded directly from Google's official source archive.
 - Debian Bookworm build compatibility patches and pre-generated build inputs
   from **156.0.8078.73-1~deb12u1**. These supply the system LLVM/Rust integration;
   the Chromium source being compiled remains 156.0.8078.79.
-- Rockchip's maintained Chromium 152 V4L2/MPP patches, adapted to 155, with a
+- Rockchip's maintained Chromium 152 V4L2/MPP patches, adapted to 156, with a
   separate patch for sandbox device/library access.
 - Pinned MPP, RGA, libv4l-rkmpp and patched libv4l2 sources.
 

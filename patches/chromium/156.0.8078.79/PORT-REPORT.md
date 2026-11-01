@@ -1,10 +1,12 @@
-# Rockchip V4L2/MPP patches for Chromium 155.0.8059.84
+# Rockchip V4L2/MPP patches for Chromium 156.0.8078.79
 
 Prepared from the Chromium 152 patch set maintained by Rockchip engineer
 Jeffy Chen in `JeffyCN/meta-rockchip`, directory
 `dynamic-layers/recipes-browser/chromium/chromium_152.0.7977`.
 
-Target: the official Chromium Gitiles tag `155.0.8059.84`.
+Target: the official Chromium Gitiles tag `156.0.8078.79`; ported first to
+`155.0.8059.84`. All nine patches apply to 156 with only moved hunks
+(`check-patches.sh`), so the adaptations below still describe them.
 Scope: enable stateful hardware decoding and V4L2 encoding through the MPP
 libv4l plugin. No proprietary Mali DDK or compositor changes are included.
 
