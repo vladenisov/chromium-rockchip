@@ -1,5 +1,7 @@
 name: Build
-# Chained build stages; later stages are skipped once one finishes.
+run-name: ${{ inputs.resume-run && format('Build (resumed from {0})', inputs.resume-run) || 'Build' }}
+# Chained build stages; later stages are skipped once one finishes. A tag whose build inputs match
+# an earlier build publishes that build's browser instead of compiling again.
 on:
   workflow_dispatch:
     inputs:
@@ -20,7 +22,28 @@ concurrency:
   group: build-${{ github.ref }}
   cancel-in-progress: false
 jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    outputs:
+      reuse-run: ${{ steps.find.outputs.run }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Find a reusable build
+        id: find
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          run=$(sh find-reusable-build.sh)
+          echo "run=$run" >> "$GITHUB_OUTPUT"
+          if [ -n "$run" ]; then
+            echo "Build inputs unchanged: reusing the browser of run $run." >> "$GITHUB_STEP_SUMMARY"
+          fi
   stage-1:
+    needs: plan
+    if: needs.plan.outputs.reuse-run == ''
     uses: ./.github/workflows/build-stage.yml
     with:
       stage: 1
@@ -93,8 +116,8 @@ jobs:
     with:
       stage: 12
   release:
-    needs: [stage-1, stage-2, stage-3, stage-4, stage-5, stage-6, stage-7, stage-8, stage-9, stage-10, stage-11, stage-12]
-    if: always() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') && contains(join(needs.*.outputs.done, ','), 'true')
+    needs: [plan, stage-1, stage-2, stage-3, stage-4, stage-5, stage-6, stage-7, stage-8, stage-9, stage-10, stage-11, stage-12]
+    if: always() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') && (needs.plan.outputs.reuse-run != '' || contains(join(needs.*.outputs.done, ','), 'true'))
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -105,6 +128,8 @@ jobs:
         with:
           name: browser
           path: dist
+          run-id: ${{ needs.plan.outputs.reuse-run || github.run_id }}
+          github-token: ${{ github.token }}
       - name: Summary
         run: cat dist/*.sha256 >> "$GITHUB_STEP_SUMMARY"
       - name: Publish release
@@ -112,6 +137,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "Release $GITHUB_REF_NAME already exists." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           gh release create "$GITHUB_REF_NAME" dist/* install.py --repo "$GITHUB_REPOSITORY" \
             --title "Chromium ${GITHUB_REF_NAME#v} for RK3588" --prerelease \
             --notes-file .github/release-notes.md

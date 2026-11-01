@@ -192,6 +192,9 @@ build tree as a short-lived artifact, and the next stage continues from it.
 The finishing stage strips the runtime and uploads
 `chromium-rockchip-VERSION-arm64.tar.xz` with its SHA256. Start it manually
 from the Actions tab, or push a `v*` tag to also publish a GitHub prerelease.
+A tag compiles only when build inputs changed since a build whose archive is
+still available; otherwise it publishes that archive. `find-reusable-build.sh`
+lists the files that do not count. A manual start always compiles.
 
 A stage that fails still uploads its build tree. After fixing the cause, start
 the workflow with `resume-run` (that run's ID) and `resume-tree` (the stage
