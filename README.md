@@ -34,8 +34,8 @@ with Panfrost Mesa).
 
 AV1, HEVC and other codecs and resolutions are not verified yet. Decoded NV12
 frames reach the compositor without a copy; headless needs patch 0021 for this.
-On Chromium 156 only the headless row has been checked so far; the other rows
-come from 155.
+On Chromium 156 the headless row and hardware decoding of VP9 on YouTube under
+GNOME Wayland have been checked; the rest comes from 155.
 
 ## Pinned inputs
 
